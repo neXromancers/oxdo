@@ -2,6 +2,17 @@
 
 A Rust rewrite of [xdotool](https://github.com/jordansissel/xdotool)
 
+## Example
+
+```rust
+
+let oxdo = oxdo::OxDo::new(None);
+oxdo.enter_text_window(0, "Hello, World!", Duration::from_millis(10));
+
+
+```
+
+
 ## License
 
 Licensed under either of
