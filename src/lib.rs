@@ -5,8 +5,13 @@ use std::convert::TryInto;
 
 use x11rb::protocol::xproto::{Window, Keycode, Keysym, KeyPressEvent, KEY_PRESS_EVENT, EventMask, KeyReleaseEvent, KEY_RELEASE_EVENT};
 use x11rb::protocol::xproto::ConnectionExt as XprotoConnectionExt;
-use x11rb::protocol::xkb::{ConnectionExt as XkbConnectionExt, MapPart, KeyModMap};
-use x11rb::protocol::xkb::ID;
+use x11rb::protocol::xkb::{
+    ConnectionExt as XkbConnectionExt,
+    MapPart,
+    KeyModMap,
+    ID,
+    self
+};
 use x11rb::connection::Connection;
 use x11rb::xcb_ffi::XCBConnection;
 use x11rb::CURRENT_TIME;
@@ -14,11 +19,12 @@ use x11rb::CURRENT_TIME;
 use x11::xlib::{Display, ShiftMapIndex, Mod5MapIndex};
 use x11rb::protocol::xtest::ConnectionExt as XtestConnectionExt;
 use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
+use x11rb::rust_connection::RustConnection;
 
 mod extra_xcb;
 
 pub struct OxDo {
-    xcb_conn: XCBConnection,
+    xcb_conn: RustConnection,
     charcodes: Vec<CharCodeMap>,
     keycode_high: Keycode,
     keycode_low: Keycode,
@@ -45,56 +51,11 @@ const CURRENT_WINDOW: Window = 0;
 
 impl OxDo {
     pub fn new(display_name: Option<&str>) -> OxDo {
-        let cstring_name = display_name.map_or(None, |f| Some(CString::new(f).unwrap()));
-        let cstr_name = cstring_name.as_ref().map(|c| c.as_c_str());
-        let cstr_or_null = cstr_name.map_or(std::ptr::null(), |c| c.as_ptr());
+        let conn = RustConnection::connect(display_name).unwrap().0;
 
-        // We are currently using unsafe because: https://github.com/psychon/x11rb/issues/432
-        const USE_UNSAFE: bool = true;
+        let ver = xkb::X11_XML_VERSION;
 
-        let conn = if USE_UNSAFE {
-            unsafe {
-                // Open display connection.
-                let dpy = x11::xlib::XOpenDisplay(cstr_or_null);
-                if dpy.is_null() {
-                    panic!("Could not open display");
-                }
-
-                let xcb_conn = x11::xlib_xcb::XGetXCBConnection(dpy);
-                if xcb_conn.is_null() {
-                    panic!("Could not cast display to xcb connection");
-                }
-
-                let conn = XCBConnection::from_raw_xcb_connection(xcb_conn, true).unwrap();
-
-                conn
-            }
-        } else {
-            XCBConnection::connect(cstr_name).unwrap().0
-        };
-
-        let get_map_reply = conn.xkb_get_map(
-            ID::UseCoreKbd as u16,
-            (MapPart::KeyTypes
-                // | MapPart::KeySyms
-                // | MapPart::ModifierMap
-                // | MapPart::ExplicitComponents
-                // | MapPart::KeyActions
-                // | MapPart::KeyBehaviors
-                // | MapPart::VirtualMods
-                // | MapPart::VirtualModMap
-            ) as u16,
-            0u16, 0, 0, 0, 0, 0, 0, 0, 0, 0u16, 0, 0, 0, 0, 0, 0,
-        );
-
-        let step1 = get_map_reply.unwrap();
-        let reply = step1.reply();
-
-        if let Err(ref e) = reply {
-            println!("{}", e);
-        }
-        let step2 = reply.unwrap();
-
+        conn.xkb_use_extension(ver.0 as _, ver.1 as _).unwrap();
 
         let mut oxdo = OxDo {
             xcb_conn: conn,
@@ -104,10 +65,7 @@ impl OxDo {
             keysyms_per_keycode: 0,
         };
 
-        // oxdo.xcb_conn.setup();
-        // oxdo.xcb_conn.sync().unwrap();
-
-        // oxdo.populate_charcode_map();
+        oxdo.populate_charcode_map();
 
         oxdo
     }
