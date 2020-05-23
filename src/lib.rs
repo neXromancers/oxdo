@@ -3,7 +3,7 @@ use std::ptr::{null, null_mut};
 use std::ffi::CString;
 use std::convert::TryInto;
 
-use x11rb::protocol::xproto::{Window, Keycode, Keysym, KeyPressEvent, KEY_PRESS_EVENT, EventMask, KeyReleaseEvent, KEY_RELEASE_EVENT};
+use x11rb::protocol::xproto::{Window, Keycode, Keysym, KeyPressEvent, KEY_PRESS_EVENT, EventMask, KeyReleaseEvent, KEY_RELEASE_EVENT, MapIndex};
 use x11rb::protocol::xproto::ConnectionExt as XprotoConnectionExt;
 use x11rb::protocol::xkb::{
     ConnectionExt as XkbConnectionExt,
@@ -16,7 +16,6 @@ use x11rb::connection::Connection;
 use x11rb::xcb_ffi::XCBConnection;
 use x11rb::CURRENT_TIME;
 
-use x11::xlib::{Display, ShiftMapIndex, Mod5MapIndex};
 use x11rb::protocol::xtest::ConnectionExt as XtestConnectionExt;
 use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 use x11rb::rust_connection::RustConnection;
@@ -484,8 +483,9 @@ impl OxDo {
             .checked_div(8).unwrap()
             .try_into().unwrap();
 
+        // TODO: Clean this up
         // Go through each potential modifier
-        for mod_index in ShiftMapIndex..Mod5MapIndex {
+        for mod_index in (MapIndex::Shift as u16)..(MapIndex::M5 as u16) {
             // If our modmask has that modifier bit enabled
             if (modmask & (1 << mod_index) as u16) != 0 {
                 // Go through each possible entry that a valid key could exist for that modifier
