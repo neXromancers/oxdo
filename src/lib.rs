@@ -232,6 +232,16 @@ impl OxDo {
         let mut charcode = self.charcodemap_from_keysym(keysym);
         charcode.key = key;
 
+        let ucs = key as u32;
+
+        // If the character is an uppercase character within the Basic Latin or Latin-1 code block,
+        // then sending the capital character keycode will not work.
+        // We have to also send the shift modifier.
+        // There are only three ranges of capital letters to worry about
+        if (ucs >= 0x41 && ucs <= 0x5A) || (ucs >= 0xC0 && ucs <= 0xD6) || (ucs >= 0xD8 && ucs <= 0xDE) {
+            charcode.modmask = 1 << (MapIndex::Shift as u16);
+        }
+
         Some(charcode)
     }
 
