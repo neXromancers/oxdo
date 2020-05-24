@@ -1,16 +1,6 @@
-[package]
-name = "oxdo"
-version = "0.1.0"
-authors = ["Hasan Ibraheem <hasantiny@gmail.com>"]
-edition = "2018"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-xkbcommon = "0.4"
-
-[dependencies.x11rb]
-version = "0.5"
-#features = ["xinput", "xkb", "sync"]
-# Choose the appropriate features later when things have settled down
-features = ["all-extensions", "allow-unsafe-code"]
+members = [
+    "oxdo",
+    "oxdotool",
+]
