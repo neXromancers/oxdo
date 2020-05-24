@@ -11,6 +11,4 @@ xkbcommon = "0.4"
 
 [dependencies.x11rb]
 version = "0.5"
-#features = ["xinput", "xkb", "sync"]
-# Choose the appropriate features later when things have settled down
-features = ["all-extensions", "allow-unsafe-code"]
+features = ["xkb", "xtest"]
