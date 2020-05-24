@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 oxdo = {path = "../oxdo"}
+clap = "2.33"
+#structopt = "0.3.14"
