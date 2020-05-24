@@ -485,7 +485,7 @@ impl OxDo {
 
         // TODO: Clean this up
         // Go through each potential modifier
-        for mod_index in (MapIndex::Shift as u16)..(MapIndex::M5 as u16) {
+        for mod_index in (MapIndex::Shift as u16)..=(MapIndex::M5 as u16) {
             // If our modmask has that modifier bit enabled
             if (modmask & (1 << mod_index) as u16) != 0 {
                 // Go through each possible entry that a valid key could exist for that modifier
