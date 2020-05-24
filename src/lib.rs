@@ -101,20 +101,20 @@ impl OxDo {
 
         let map = &get_map_reply.map;
 
-        for (i, sym_map) in map.syms_rtrn.as_ref().unwrap().iter().enumerate() {
-            let keycode = i + get_map_reply.min_key_code as usize;
-            println!("sym_map {}:", keycode);
-            println!("\tkt_index[4]: {:?}", sym_map.kt_index);
-            println!("\tgroupInfo: {}", sym_map.group_info);
-            println!("\twidth: {}", sym_map.width);
-            println!("\tnSyms: {}", sym_map.syms.len());
-            println!("\tkeysyms:");
-            for keysym in &sym_map.syms {
-                println!("\t\t{}", keysym);
-            }
-        }
-
-        println!("{} ... {}", get_map_reply.min_key_code, get_map_reply.max_key_code);
+        // for (i, sym_map) in map.syms_rtrn.as_ref().unwrap().iter().enumerate() {
+        //     let keycode = i + get_map_reply.min_key_code as usize;
+        //     println!("sym_map {}:", keycode);
+        //     println!("\tkt_index[4]: {:?}", sym_map.kt_index);
+        //     println!("\tgroupInfo: {}", sym_map.group_info);
+        //     println!("\twidth: {}", sym_map.width);
+        //     println!("\tnSyms: {}", sym_map.syms.len());
+        //     println!("\tkeysyms:");
+        //     for keysym in &sym_map.syms {
+        //         println!("\t\t{}", keysym);
+        //     }
+        // }
+        //
+        // println!("{} ... {}", get_map_reply.min_key_code, get_map_reply.max_key_code);
 
         self.keycode_low = get_map_reply.min_key_code;
         self.keycode_high = get_map_reply.max_key_code;
@@ -129,13 +129,19 @@ impl OxDo {
         let key_types = map.types_rtrn.as_ref().unwrap();
         let modmap = map.modmap_rtrn.as_ref().unwrap();
 
-        for (i, key_type) in key_types.iter().enumerate() {
-            println!("{}", i);
-            for map_entry in &key_type.map {
-                println!("{:?}", map_entry);
-            }
-            println!("");
-        }
+        // for (i, map) in modmap.iter().enumerate() {
+        //     println!("ModMap: {}", i);
+        //     println!("\tMask: {:08b}", map.mods);
+        //     println!("\tKeycode: {:}", map.keycode);
+        // }
+
+        // for (i, key_type) in key_types.iter().enumerate() {
+        //     println!("{}", i);
+        //     for map_entry in &key_type.map {
+        //         println!("{:?}", map_entry);
+        //     }
+        //     println!("");
+        // }
 
 
         for (i, sym_map) in sym_maps.iter().enumerate() {
@@ -159,14 +165,21 @@ impl OxDo {
                         }
                     }
 
-                    self.charcodes.push(CharCodeMap {
+                    let charcode_map = CharCodeMap {
                         key: self.keysym_to_char(keysym).unwrap(),
                         code: keycode,
                         symbol: keysym,
                         group: group as u16,
+                        //
                         modmask: (modmask | self.query_keycode_to_modifier(modmap, keycode)) as u16,
                         needs_binding: false,
-                    });
+                    };
+
+                    // if self.query_keycode_to_modifier(modmap, keycode) != 0 {
+                    //     println!("{:#?}", charcode_map);
+                    // }
+
+                    self.charcodes.push(charcode_map);
                 }
             }
         }
@@ -174,7 +187,7 @@ impl OxDo {
 
     fn query_keycode_to_modifier(&self, modmap: &[KeyModMap], keycode: Keycode) -> u8 {
         if let Some(map) = modmap.iter().find(|m| m.keycode == keycode) {
-            println!("mod: {}", map.mods);
+            // println!("mod: {}", map.mods);
 
             map.mods
         } else {
@@ -267,14 +280,12 @@ impl OxDo {
             let key = self.charcodemap_from_char(c);
 
             if let Some(mut charcode) = key {
-                if charcode.needs_binding {
-                    charcode.key = c;
-                }
-
                 let keys = [charcode];
 
+                // TODO: stop sending lists of 1 keys. do it all at once
                 self.send_keysequence_window_list_do(window, &keys, true, half_delay);
-                charcode.needs_binding = false;
+
+                // charcode.needs_binding = false;
                 self.send_keysequence_window_list_do(window, &keys, false, half_delay);
             } else {
                 eprintln!("I don't what key produces '{}', skipping.", c);
@@ -286,11 +297,15 @@ impl OxDo {
         &self,
         window: Window,
         keys: &[CharCodeMap],
-        // nkeys: i32,
         pressed: bool,
-        // modifier: ,
         delay: Duration,
     ) {
+        println!("Sending a character:");
+        println!("\tpressed: {}", pressed);
+        println!("\tkeysym: {}", keys[0].symbol);
+        println!("\tbinding: {}", keys[0].needs_binding);
+        println!("");
+
         let mut modstate = 0;
         let mut keymapchanged = false;
 
@@ -305,6 +320,10 @@ impl OxDo {
         let keysyms_per_keycode = mapping.keysyms_per_keycode;
 
 
+        // TODO: use multiple keycodes for grabbing keys you dont have
+        // could change multiple keycodes at once in chunks as we go through
+        // a string. Will go directly with the TODO where I say not to just
+        // send characters one at a time.
         /* Find a keycode that is unused for scratchspace */
         for i in self.keycode_low..self.keycode_high {
             let mut key_is_empty = true;
@@ -324,12 +343,6 @@ impl OxDo {
                 break;
             }
         }
-
-        /* Allow passing NULL for modifier in case we don't care about knowing
-         * the modifier map state after we finish */
-        // if (modifier == NULL) {
-        //     let modifier = &mut modstate;
-        // }
 
         for charcodemap in keys {
             let mut charcode = charcodemap.clone();
@@ -353,7 +366,6 @@ impl OxDo {
                 keymapchanged = true;
             }
 
-            // self.send_key(window, charcode, *modifier, pressed, delay);
             self.send_key(window, &charcode, modstate, pressed, delay);
 
             if charcode.needs_binding {
@@ -363,12 +375,6 @@ impl OxDo {
 
                 self.xcb_conn.sync().unwrap();
             }
-
-            // if (pressed) {
-            //     *modifier |= keys[i].modmask;
-            // } else {
-            //     *modifier &= ~(keys[i].modmask);
-            // }
         }
 
 
@@ -381,6 +387,8 @@ impl OxDo {
                 1,
                 &keysym_list,
             );
+
+            self.xcb_conn.sync().unwrap();
         }
 
         /* Necessary? */
