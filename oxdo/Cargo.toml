@@ -11,4 +11,5 @@ xkbcommon = "0.4"
 
 [dependencies.x11rb]
 version = "0.5"
+default-features = false
 features = ["xkb", "xtest"]

@@ -1,9 +1,7 @@
 use std::time::Duration;
-use std::ptr::{null, null_mut};
-use std::ffi::CString;
 use std::convert::TryInto;
 
-use x11rb::protocol::xproto::{Window, Keycode, Keysym, KeyPressEvent, KEY_PRESS_EVENT, EventMask, KeyReleaseEvent, KEY_RELEASE_EVENT, MapIndex};
+use x11rb::protocol::xproto::{Window, Keycode, Keysym, KeyPressEvent, KEY_PRESS_EVENT, EventMask, KEY_RELEASE_EVENT, MapIndex};
 use x11rb::protocol::xproto::ConnectionExt as XprotoConnectionExt;
 use x11rb::protocol::xkb::{
     ConnectionExt as XkbConnectionExt,
@@ -13,7 +11,6 @@ use x11rb::protocol::xkb::{
     self
 };
 use x11rb::connection::Connection;
-use x11rb::xcb_ffi::XCBConnection;
 use x11rb::CURRENT_TIME;
 
 use x11rb::protocol::xtest::ConnectionExt as XtestConnectionExt;
