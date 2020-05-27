@@ -18,6 +18,7 @@ use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 use x11rb::rust_connection::RustConnection;
 
 mod extra_xcb;
+mod xbcommon_keysym;
 
 pub struct OxDo {
     xcb_conn: RustConnection,
@@ -163,7 +164,7 @@ impl OxDo {
                     }
 
                     let charcode_map = CharCodeMap {
-                        key: self.keysym_to_char(keysym).unwrap(),
+                        key: xbcommon_keysym::keysym_to_char(keysym).unwrap(),
                         code: keycode,
                         symbol: keysym,
                         group: group as u16,
@@ -192,52 +193,12 @@ impl OxDo {
         }
     }
 
-    fn keysym_to_char(&self, keysym: Keysym) -> Option<char> {
-        xkbcommon::xkb::keysym_to_utf32(keysym).try_into().ok()
-    }
-
-    fn char_to_keysym(&self, key: char) -> Option<Keysym> {
-        use xkbcommon::xkb::keysyms::{
-            KEY_BackSpace, KEY_Clear, KEY_Return, KEY_Escape, KEY_Delete,
-        };
-
-        // Copied from https://github.com/xkbcommon/libxkbcommon/blob/892cfef834f109efbabbc70941e7a443d5fc27f6/src/keysym-utf.c#L901
-        // because the release with that function is not out yet
-
-        let ucs = key as u32;
-        /* first check for Latin-1 characters (1:1 mapping) */
-        if (ucs >= 0x0020 && ucs <= 0x007e) || (ucs >= 0x00a0 && ucs <= 0x00ff) {
-            return Some(ucs);
-        }
-
-        /* special keysyms */
-        if (ucs >= (KEY_BackSpace & 0x7f) && ucs <= (KEY_Clear & 0x7f)) || ucs == (KEY_Return & 0x7f) || ucs == (KEY_Escape & 0x7f) {
-            return Some(ucs | 0xff00);
-        }
-
-        if ucs == (KEY_Delete & 0x7f) {
-            return Some(KEY_Delete);
-        }
-
-        /* Unicode non-symbols and code points outside Unicode planes */
-        if (ucs >= 0xfdd0 && ucs <= 0xfdef) || ucs > 0x10ffff || (ucs & 0xfffe) == 0xfffe {
-            return None;
-        }
-
-        // We skip checking the main table because we dont have the main table
-        // TODO: consider grabbing the main table
-
-        /* Use direct encoding if everything else fails */
-        // Will this ever be incorrect for a valid unicode codepoint?
-        return Some(ucs | 0x01000000);
-    }
-
     fn charcodemap_from_char(&self, key: char) -> Option<CharCodeMap> {
         if let Some(&map) = self.charcodes.iter().find(|c| c.key == key) {
             return Some(map);
         }
 
-        let keysym = self.char_to_keysym(key)?;
+        let keysym = xbcommon_keysym::char_to_keysym(key)?;
 
         let mut charcode = self.charcodemap_from_keysym(keysym);
         charcode.key = key;
