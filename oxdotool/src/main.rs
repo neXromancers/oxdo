@@ -2,7 +2,6 @@ use clap::{Arg, App, SubCommand, AppSettings, ArgMatches};
 use std::time::Duration;
 use std::str::FromStr;
 use std::num::ParseIntError;
-use std::error::Error;
 
 fn main() {
     let matches = App::new("oxdotool")
